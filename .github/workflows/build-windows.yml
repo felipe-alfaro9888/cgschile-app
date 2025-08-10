@@ -12,7 +12,7 @@ env:
   CI: true
   GH_TOKEN: ""                 # evita auto-publish
   ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
-  CSC_IDENTITY_AUTO_DISCOVERY: "false"   # << desactiva intento de firma
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"   
 
 steps:
       - name: Checkout
