@@ -23,13 +23,13 @@
     "mac": {
       "category": "public.app-category.graphics-design",
       "target": ["dmg"]
-      /* icon removido */
+     
     },
     "dmg": { "artifactName": "Generador_Grilla_CGSCHILE_mac_${version}.${ext}" },
 
     "win": {
       "target": [{ "target":"nsis", "arch":["x64"] }]
-      /* icon removido */
+     
     },
     "nsis": {
       "oneClick": true,
@@ -41,7 +41,7 @@
     "linux": {
       "target": ["AppImage"],
       "category": "Graphics"
-      /* icon removido */
+     
     }
   }
 }
