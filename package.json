@@ -2,10 +2,7 @@
   "name": "generador-grilla-cgschile",
   "productName": "Generador Grilla CGSChile",
   "version": "1.0.0",
-  "description": "Aplicación de escritorio offline para Generador_Grilla_CGSCHILE",
   "main": "main.js",
-  "author": "CGSChile",
-  "license": "Proprietary",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder -wml",
@@ -19,39 +16,20 @@
   },
   "build": {
     "appId": "cl.cgschile.generadorgrilla",
-    "files": [
-      "main.js",
-      "preload.js",
-      "app/**/*"
-    ],
+    "files": ["main.js","preload.js","app/**/*"],
     "asar": true,
-    "extraResources": [],
-    "directories": {
-      "buildResources": "build"
-    },
+    "directories": { "buildResources": "build" },
+
     "mac": {
       "category": "public.app-category.graphics-design",
-      "target": [
-        "dmg"
-      ],
-      "icon": "build/icon.icns",
-      "hardenedRuntime": true,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "target": ["dmg"]
+      /* icon removido */
     },
-    "dmg": {
-      "artifactName": "Generador_Grilla_CGSCHILE_mac_${version}.${ext}"
-    },
+    "dmg": { "artifactName": "Generador_Grilla_CGSCHILE_mac_${version}.${ext}" },
+
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "build/icon.ico"
+      "target": [{ "target":"nsis", "arch":["x64"] }]
+      /* icon removido */
     },
     "nsis": {
       "oneClick": true,
@@ -59,13 +37,11 @@
       "allowToChangeInstallationDirectory": false,
       "artifactName": "Generador_Grilla_CGSCHILE_win_${version}.exe"
     },
+
     "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "category": "Graphics",
-      "icon": "build/icon.png",
-      "artifactName": "Generador_Grilla_CGSCHILE_linux_${version}.${ext}"
+      "target": ["AppImage"],
+      "category": "Graphics"
+      /* icon removido */
     }
   }
 }
