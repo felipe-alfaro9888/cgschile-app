@@ -6,31 +6,49 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      # Fuerza logs útiles y evita publicar releases
+      DEBUG: electron-builder
+      CI: true
+      GH_TOKEN: ""                 # evita auto-publish
+      ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node (LTS)
+      - name: Node LTS
         uses: actions/setup-node@v4
         with:
-          node-version: '20'           # más estable para Electron 30
-          cache: 'npm'
+          node-version: '20'
 
-      # A veces npm install falla por peer deps. Probamos normal y, si falla, repetimos con legacy.
-      - name: Install dependencies
+      - name: Mostrar versiones y árbol
         run: |
-          npm install || (echo "retry with legacy peer deps" && npm install --legacy-peer-deps)
+          node -v
+          npm -v
+          dir
+          type package.json
 
-      # (Opcional) asegura binarios nativos de Electron si alguna lib los requiere
-      - name: Install app deps
-        run: npx electron-builder install-app-deps
+      # Instala deps; si falla por peer deps, reintenta con legacy
+      - name: Instalar dependencias
+        run: |
+          npm install --no-audit --no-fund || npm install --legacy-peer-deps --no-audit --no-fund
 
+      # Pre-descarga electron-builder y sus binarios
+      - name: Pre-fetch builder
+        run: npx electron-builder --version
+
+      # Construye el .exe sin intentar publicar
       - name: Build Windows (.exe)
-        run: npm run dist:win
+        run: npx electron-builder -w --publish=never
 
-      - name: Upload artifact (.exe)
+      # Sube SIEMPRE outputs y logs, incluso si falla
+      - name: Upload outputs & logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Generador_Grilla_CGSCHILE_Windows_Installer
-          path: dist/*.exe
+          name: build-outputs-and-logs
+          path: |
+            dist/**
+            **/_logs/**
+            **/builder-debug*.log
