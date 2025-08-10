@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Generador Grilla CGSChile — v9.17</title>
+<style>
+  :root { --bg:#101114; --panel:#17191e; --text:#e9eef3; --muted:#a8b0bb; --accent:#63c0ff; --line:#2a2d35; }
+  *{ box-sizing:border-box }
+  html, body { height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+  .wrap { display:flex; gap:16px; padding:16px; height:100%; }
+  .panel { width:500px; background: var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; overflow:auto; }
+  .panel h1 { margin:0 0 8px; font-size:18px; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  label { font-size:12px; color: var(--muted); }
+  input[type="number"], input[type="text"], input[type="color"], select {
+    width:100%; padding:8px 10px; border-radius:10px; background:#0f1116; border:1px solid #2a2d35; color:#e9eef3;
+  }
+  .row { display:flex; gap:10px; }
+  .row > div { flex:1; }
+  .sub { font-size:11px; color: var(--muted); }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  button { background:var(--accent); color:#00121d; border:0; padding:10px 12px; border-radius:10px; font-weight:700; cursor:pointer; }
+  button.ghost { background:transparent; border:1px solid var(--line); color: var(--text); }
+  .stage { flex:1; background:#000; border-radius:14px; border:1px solid var(--line); position:relative; overflow:auto; display:flex; align-items:center; justify-content:center; }
+  canvas { display:block; }
+  .note { position:absolute; right:10px; bottom:10px; font-size:12px; color:#aab1bb; background: rgba(0,0,0,.45); padding:6px 8px; border-radius:8px; }
+  .palette { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .swatch { width:24px; height:24px; border-radius:6px; border:1px solid #0008; cursor:pointer; }
+  .swatch.sel { outline:2px solid #fff; outline-offset:2px; }
+  .divider { height:1px; background:var(--line); margin:12px 0; }
+  .pill { display:inline-block; font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid var(--line); color:var(--muted); }
+  .chk { display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .error { position:fixed; left:16px; bottom:16px; background:#ff4d4f; color:#fff; padding:8px 12px; border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,.25); font-size:12px; display:none; z-index:99; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <h1>LED Grid Generator <span class="pill">v9.17</span></h1>
+
+    <div class="grid">
+      <div>
+        <label>Ancho módulo (px)</label>
+        <input type="number" id="modW" value="168" min="1" step="1">
+      </div>
+      <div>
+        <label>Alto módulo (px)</label>
+        <input type="number" id="modH" value="168" min="1" step="1">
+      </div>
+
+      <div>
+        <label>Columnas (módulos)</label>
+        <input type="number" id="cols" value="10" min="1" step="1">
+      </div>
+      <div>
+        <label>Filas (módulos)</label>
+        <input type="number" id="rows" value="6" min="1" step="1">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="grid">
+      <div>
+        <label>Grosor de línea (px)</label>
+        <input type="number" id="stroke" value="2" min="1" step="1">
+      </div>
+
+      <div>
+        <label>Numeración</label>
+        <select id="numMode">
+          <option value="none">Sin números</option>
+          <option value="rc">fila,col</option>
+          <option value="cr">col,fila</option>
+          <option value="seq">secuencial</option>
+        </select>
+      </div>
+      <div>
+        <label>Formato</label>
+        <select id="numFmt">
+          <option value="1">1</option>
+          <option value="01">01</option>
+          <option value="001">001</option>
+        </select>
+      </div>
+      <div>
+        <label>Tamaño número (auto)</label>
+        <input type="number" id="numSize" value="20" min="8">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label>Fuente</label>
+        <select id="fontFamily">
+          <option value="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif">Sistema</option>
+          <option value="Arial, Helvetica, sans-serif">Arial</option>
+          <option value="Roboto, Arial, sans-serif">Roboto</option>
+          <option value="Montserrat, Arial, sans-serif">Montserrat</option>
+        </select>
+      </div>
+    </div>
+
+    <label style="margin-top:10px; display:block;">Título</label>
+    <input type="text" id="title" value="PANTALLA 10×6 (P2)">
+    <div class="grid" style="margin-top:6px;">
+      <div>
+        <label>Tamaño título (auto)</label>
+        <input type="number" id="titleSize" value="64" min="10">
+      </div>
+      <div>
+        <label>Fondo del título</label>
+        <select id="titleBg">
+          <option value="on">Activado</option>
+          <option value="off">Desactivado</option>
+        </select>
+      </div>
+      <div>
+        <label>Opacidad fondo (%)</label>
+        <input type="number" id="titleBgOp" value="60" min="0" max="100">
+      </div>
+      <div>
+        <label>Offset de fondo (Y, px)</label>
+        <input type="number" id="titleBgOffsetY" value="0" step="1" min="-50" max="50">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:6px;">
+      <div>
+        <label>Extras</label>
+        <select id="extras">
+          <option value="barsCircle">Barras + círculo</option>
+          <option value="circle">Solo círculo</option>
+          <option value="bars">Solo barras</option>
+          <option value="none">Sin extras</option>
+        </select>
+      </div>
+      <div class="chk">
+        <input type="checkbox" id="estGlow" checked>
+        <label for="estGlow">Glow inferior (usa Color B)</label>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h3 style="margin:6px 0 6px; font-size:14px;">Guías de centro (cruz + X)</h3>
+    <div class="grid">
+      <div class="chk">
+        <input type="checkbox" id="centerGuides" checked>
+        <label for="centerGuides">Mostrar guías</label>
+      </div>
+      <div>
+        <label>Opacidad (%)</label>
+        <input type="number" id="guideOp" value="35" min="0" max="100">
+      </div>
+      <div>
+        <label>Grosor (px)</label>
+        <input type="number" id="guideStroke" value="2" min="1" max="8">
+      </div>
+      <div>
+        <label>Color guía</label>
+        <input type="color" id="guideColor" value="#ff7f7f">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h3 style="margin:6px 0 6px; font-size:14px;">Gradiente global</h3>
+    <div class="grid">
+      <div>
+        <label>Color A</label>
+        <input type="color" id="gradA" value="#000000">
+      </div>
+      <div>
+        <label>Color B</label>
+        <input type="color" id="gradB" value="#cc0000">
+      </div>
+      <div>
+        <label>Orientación</label>
+        <select id="gradOri">
+          <option value="vertical">Vertical</option>
+          <option value="horizontal">Horizontal</option>
+          <option value="diag1">Diagonal ↘︎</option>
+          <option value="diag2">Diagonal ↗︎</option>
+        </select>
+      </div>
+      <div>
+        <label>Alternar por módulo</label>
+        <select id="gradAlt">
+          <option value="checker">Sí (ajedrez)</option>
+          <option value="row">Sí (por fila)</option>
+          <option value="col">Sí (por columna)</option>
+          <option value="none">No</option>
+        </select>
+      </div>
+    </div>
+    <div class="btns">
+      <button id="applyGrad">Aplicar gradiente a todos</button>
+      <button class="ghost" id="clearGrad">Quitar gradiente</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <h3 style="margin:6px 0 6px; font-size:14px;">Pintar módulos manualmente</h3>
+    <div class="palette" id="palette"></div>
+    <div class="btns">
+      <button class="ghost" id="clearColors">Limpiar colores</button>
+      <button class="ghost" id="invertColors">Invertir colores</button>
+      <button class="ghost" id="shuffleColors">Aleatorizar</button>
+    </div>
+    <div class="sub">Click = pinta · Arrastrar = brocha · Ctrl/Cmd+Click = cuentagotas</div>
+
+    <div class="divider"></div>
+
+    <h3 style="margin:6px 0 6px; font-size:14px;">Logo</h3>
+    <div class="grid">
+      <div>
+        <label>Archivo (PNG)</label>
+        <input type="file" id="logoFile" accept="image/png">
+      </div>
+      <div>
+        <label>Escala (%)</label>
+        <input type="number" id="logoScale" value="20" min="1" max="100">
+      </div>
+      <div>
+        <label>Opacidad (%)</label>
+        <input type="number" id="logoOpacity" value="80" min="0" max="100">
+      </div>
+      <div>
+        <label>Posición</label>
+        <select id="logoPos">
+          <option value="br">Abajo derecha</option>
+          <option value="bl">Abajo izquierda</option>
+          <option value="tr">Arriba derecha</option>
+          <option value="tl">Arriba izquierda</option>
+          <option value="center">Centro</option>
+        </select>
+      </div>
+
+      <div class="chk" style="grid-column: span 2;">
+        <input type="checkbox" id="logoDropOn" checked>
+        <label for="logoDropOn">Sombra paralela (drop shadow)</label>
+      </div>
+      <div>
+        <label>Opacidad sombra (%)</label>
+        <input type="number" id="logoDropOpacity" value="90" min="0" max="100">
+      </div>
+      <div>
+        <label>Ángulo (°)</label>
+        <input type="number" id="logoDropAngle" value="135" min="0" max="360">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h3 style="margin:6px 0 6px; font-size:14px;">Presets de layout (10×6)</h3>
+    <div class="row">
+      <div>
+        <select id="presetSelect">
+          <option value="">— Elegir preset —</option>
+          <option value="p2">Pantalla 10×6 @168×168 (P2)</option>
+          <option value="p3">Pantalla 10×6 @128×128 (P3)</option>
+          <option value="p4">Pantalla 10×6 @104×104 (P4)</option>
+          <option value="p6">Pantalla 10×6 @80×80 (P6)</option>
+          <option value="p7">Pantalla 10×6 @64×64 (P7)</option>
+        </select>
+      </div>
+      <button class="ghost" id="applyPresetBtn">Aplicar</button>
+    </div>
+    <div class="sub">Preset por defecto: <strong>P2 (10×6 @168)</strong>. Vista HiDPI con anti-pixel a baja resolución.</div>
+
+    <div class="divider"></div>
+
+    <div class="row">
+      <div class="sub">Resolución total: <strong id="totalPx">—</strong></div>
+      <div class="sub" style="text-align:right;">Celdas: <strong id="cellsInfo">—</strong></div>
+    </div>
+
+    <div class="btns">
+      <button id="renderBtn">Actualizar vista</button>
+      <button id="pngBtn">Exportar PNG</button>
+      <button id="svgBtn">Exportar SVG</button>
+      <button class="ghost" id="saveLayout">Guardar layout</button>
+      <button class="ghost" id="loadLayout">Cargar layout</button>
+      <input type="file" id="layoutFile" accept="application/json" style="display:none">
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="canvas"></canvas>
+    <div class="note">Vista previa HiDPI (margen 0 · nítido · anti-pixel)</div>
+  </div>
+</div>
+
+<div class="error" id="errBox"></div>
+
+<script>
+/* ===== Filename Lock ===== */
+(function filenameLock(){
+  try{
+    const EXPECTED = "Generador_Grilla_CGSCHILE.html";
+    // Some browsers may percent-decode spaces, etc.
+    const actual = (location.pathname || "").split("/").pop() || "";
+    const cleanActual = decodeURIComponent(actual);
+    if (cleanActual !== EXPECTED) {
+      // Fullscreen overlay
+      const ov = document.createElement("div");
+      ov.style.position = "fixed";
+      ov.style.inset = "0";
+      ov.style.background = "#0b0d11";
+      ov.style.color = "#fff";
+      ov.style.display = "flex";
+      ov.style.flexDirection = "column";
+      ov.style.alignItems = "center";
+      ov.style.justifyContent = "center";
+      ov.style.fontFamily = "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+      ov.style.zIndex = "99999";
+      ov.innerHTML = '<div style="max-width:720px;text-align:center;padding:24px;"><h1 style="margin:0 0 12px;font-size:28px;">Archivo no autorizado</h1><p style="margin:0 0 8px;font-size:14px;opacity:.85;">Este programa debe ejecutarse con el nombre exacto <strong>Generador_Grilla_CGSCHILE.html</strong>.</p><p style="margin:0 0 16px;font-size:13px;opacity:.7;">Nombre detectado: <code>'+ (cleanActual||"(vacío)") +'</code></p><p style="font-size:13px;opacity:.8;">Renombra el archivo correctamente y vuelve a abrirlo.</p></div>';
+      document.documentElement.innerHTML = "";
+      document.body = document.createElement("body");
+      document.body.appendChild(ov);
+      throw new Error("Locked by filename check");
+    }
+  }catch(e){
+    try{ console.error(e); }catch(_){}
+  }
+})();
+/* === End Filename Lock === */
+
+const $ = (id)=>document.getElementById(id);
+const stage = $("stage");
+const canvas = $("canvas");
+let ctx = canvas.getContext("2d");
+
+/* ==== Error overlay ==== */
+window.addEventListener("error", (e)=>{
+  const box = $("errBox");
+  box.textContent = "Error: " + (e.message || "desconocido");
+  box.style.display = "block";
+});
+
+/* ==== Constantes ==== */
+const INTERNAL_MARGIN = 0; // margen 0 en preview y export
+const DEFAULT_DROP_BLUR = 10; // blur fijo para la sombra
+const DEFAULT_DROP_DIST = 8;  // distancia fija para la sombra
+const INTERNAL_TITLE_BG_BASE_OFFSET = -10; // offset interno para fondo del título
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+
+// Supersampling: mejora nitidez a bajas resoluciones
+function computeSupersample(modW, modH){
+  const base = Math.min(modW, modH);
+  return base < 96 ? 2 : 1; // si el módulo es pequeño, renderiza a 2x
+}
+
+/* ==== Auto sizing flags ==== */
+let autoTitleSizing = true;
+let autoNumSizing = true; // tamaño de números automático
+
+/* ==== Relación de tamaño de número respecto a módulo (baseline P2) ==== */
+const P2_MODULE = 168;
+const P2_NUMSIZE = 20;
+const NUM_RATIO = P2_NUMSIZE / P2_MODULE; // ≈0.119
+
+/* ==== Paleta (10 colores) ==== */
+const defaultPalette = [
+  "#000000","#CC0000","#CC00CC","#0047B3","#00E1E1",
+  "#660066","#00CC00","#660000","#B7B7B7","#BB6700"
+];
+let selectedColor = defaultPalette[1];
+let colors = []; // overrides por celda
+let logoImg = null;
+let logoDataURL = null; // para guardar/cargar
+let gradApplied = true; // gradiente activo por defecto
+
+function buildPalette() {
+  const pal = document.getElementById("palette"); pal.innerHTML = "";
+  defaultPalette.forEach(col => {
+    const sw = document.createElement("button");
+    sw.className = "swatch"; sw.style.background = col; sw.title = col;
+    sw.addEventListener("click", ()=>{ selectedColor = col; updatePaletteSelection(col); });
+    pal.appendChild(sw);
+  });
+  updatePaletteSelection(selectedColor);
+}
+function updatePaletteSelection(col){
+  document.querySelectorAll(".swatch").forEach(n=>n.classList.remove("sel"));
+  document.querySelectorAll(".swatch").forEach(n=>{ if(n.title === col) n.classList.add("sel"); });
+}
+
+/* ==== Resolución & Fit ==== */
+function computeResolution(){
+  const modW = Math.max(1, Number($("modW").value));
+  const modH = Math.max(1, Number($("modH").value));
+  const cols = Math.max(1, Number($("cols").value));
+  const rows = Math.max(1, Number($("rows").value));
+  const W = modW * cols;
+  const H = modH * rows;
+  $("totalPx").textContent = `${W} × ${H} px`; $("cellsInfo").textContent = `${cols} × ${rows}`;
+  return {W,H,cols,rows,modW,modH};
+}
+function ensureCanvasSize(W,H,SS){
+  DPR = Math.max(1, window.devicePixelRatio || 1);
+  const scale = DPR * SS;
+  canvas.width = Math.floor(W * scale);
+  canvas.height = Math.floor(H * scale);
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+  ctx = canvas.getContext("2d");
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  fitCanvasToStage();
+}
+function fitCanvasToStage(){
+  const {width: sw, height: sh} = stage.getBoundingClientRect();
+  const W = parseInt(canvas.style.width) || canvas.width / (DPR||1);
+  const H = parseInt(canvas.style.height) || canvas.height / (DPR||1);
+  if(!W || !H || !sw || !sh) return;
+  const scale = Math.min(sw / W, sh / H);
+  const cssW = Math.max(1, Math.floor(W * scale));
+  const cssH = Math.max(1, Math.floor(H * scale));
+  canvas.style.width = cssW + "px";
+  canvas.style.height = cssH + "px";
+}
+
+/* ==== Auto sizing para título ==== */
+function applyAutoTitleSizing(W,H){
+  if(!autoTitleSizing) return;
+  const size = Math.max(24, Math.round(Math.min(W,H) * 0.06)); // ~6%
+  $("titleSize").value = size;
+}
+
+/* ==== Auto sizing para números según módulo ==== */
+function applyAutoNumSizing(modW, modH){
+  if(!autoNumSizing) return;
+  const base = Math.min(modW, modH);
+  const size = Math.max(8, Math.round(base * NUM_RATIO));
+  $("numSize").value = size;
+}
+
+/* ==== Título (texto fijo; fondo con offset del usuario) ==== */
+const TITLE_PAD = 6;      // padding fijo
+const TITLE_MIN_SEP = 12; // separación mínima entre fondo y barras
+
+function drawCenteredTitleAboveBars(W,H,barsTop){
+  const title = $("title").value;
+  const titleSize = Math.max(10, Number($("titleSize").value));
+  const fontFamily = $("fontFamily").value;
+  ctx.font = `700 ${titleSize}px ${fontFamily}`;
+  const text = `${title} — ${W}×${H}px`;
+
+  // Métricas del texto
+  const metrics = ctx.measureText(text);
+  const textW = metrics.width;
+  const ascent = metrics.actualBoundingBoxAscent || titleSize * 0.8;
+  const descent = metrics.actualBoundingBoxDescent || titleSize * 0.2;
+  const textH = ascent + descent;
+  const rectH = Math.ceil(textH + 2*TITLE_PAD);
+  const rectW = Math.ceil(textW + 2*TITLE_PAD);
+
+  // Base: centramos el bloque sobre las barras con separación mínima
+  const baseRectBottom = barsTop - TITLE_MIN_SEP;
+  const baseRectY = Math.floor(baseRectBottom - rectH);
+  const rectX = Math.floor((W - rectW)/2);
+
+  // Baseline del texto *fija* respecto a la base (centrada verticalmente)
+  const baseRectCenterY = baseRectY + rectH/2;
+  const baselineY = baseRectCenterY - textH/2 + ascent;
+  const tx = rectX + TITLE_PAD;
+
+  // Offset SOLO del rectángulo
+  const off = Number($("titleBgOffsetY").value) || 0;
+  // rectY provisorio con offset
+  let rectY = baseRectY + INTERNAL_TITLE_BG_BASE_OFFSET + off;
+  // Clamp para que la parte inferior del rect no toque las barras
+  const maxRectY = barsTop - TITLE_MIN_SEP - rectH;
+  rectY = Math.min(rectY, maxRectY);
+
+  if($("titleBg").value === "on"){
+    const bgOp = Math.max(0, Math.min(100, Number($("titleBgOp").value)))/100;
+    ctx.fillStyle = `rgba(0,0,0,${bgOp})`;
+    ctx.fillRect(rectX, rectY, rectW, rectH);
+  }
+
+  // Texto encima, sin mover
+  ctx.fillStyle = "#dfe6ee";
+  ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, tx, baselineY);
+  ctx.shadowBlur = 0;
+}
+
+/* ==== Guías & Glow ==== */
+function drawCenterGuides(x0,y0,w,h,opacity,stroke,color){
+  if(!opacity) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = opacity;
+  ctx.lineWidth = stroke;
+  ctx.beginPath();
+  ctx.moveTo(x0 + w/2, y0); ctx.lineTo(x0 + w/2, y0 + h);
+  ctx.moveTo(x0, y0 + h/2); ctx.lineTo(x0 + w, y0 + h/2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x0, y0); ctx.lineTo(x0 + w, y0 + h);
+  ctx.moveTo(x0 + w, y0); ctx.lineTo(x0, y0 + h);
+  ctx.stroke();
+  ctx.restore();
+}
+function drawGlowInCell(x,y,cw,ch,color){
+  const g = ctx.createLinearGradient(x, y+ch, x, y+ch*0.65);
+  g.addColorStop(0, color);
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y+ch*0.5, cw, ch*0.5);
+}
+
+/* ==== Dibujo principal ==== */
+function draw(){
+  const {W,H,cols,rows,modW,modH} = computeResolution();
+  const SS = computeSupersample(modW, modH);
+  const margin = INTERNAL_MARGIN; // 0
+  const stroke = Math.max(1, Number($("stroke").value));
+  const numMode = $("numMode").value;
+  const numFmt = $("numFmt").value;
+  const extras = $("extras").value;
+
+  ensureCanvasSize(W,H,SS);
+  applyAutoTitleSizing(W,H);
+  applyAutoNumSizing(modW, modH);
+
+  const x0 = margin, y0 = margin, x1 = W - margin, y1 = H - margin;
+  const w = x1 - x0, h = y1 - y0;
+  const cw = w / cols, ch = h / rows;
+
+  ctx.save();
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = "#000"; ctx.fillRect(0,0,W,H);
+
+  // Init buffer
+  if(colors.length !== rows || (colors[0] && colors[0].length !== cols)){
+    colors = Array.from({length:rows}, ()=> Array.from({length:cols}, ()=> null));
+  }
+
+  // Gradients / Colores por celda
+  const gA = $("gradA").value, gB = $("gradB").value;
+  const gOri = $("gradOri").value, gAlt = $("gradAlt").value;
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const rx = x0 + c*cw;
+      const ry = y0 + r*ch;
+      if(colors[r][c]){
+        ctx.fillStyle = colors[r][c];
+        ctx.fillRect(rx, ry, cw, ch);
+      } else if(gradApplied){
+        let x1g=rx, y1g=ry, x2g=rx+cw, y2g=ry+ch;
+        if(gOri==="vertical"){ x1g=rx; y1g=ry; x2g=rx; y2g=ry+ch; }
+        else if(gOri==="horizontal"){ x1g=rx; y1g=ry; x2g=rx+cw; y2g=ry; }
+        else if(gOri==="diag1"){ x1g=rx; y1g=ry; x2g=rx+cw; y2g=ry+ch; }
+        else if(gOri==="diag2"){ x1g=rx+cw; y1g=ry; x2g=rx; y2g=ry+ch; }
+        const alt = (gAlt==="checker" ? ((r+c)%2===1) : gAlt==="row" ? (r%2===1) : gAlt==="col" ? (c%2===1) : false);
+        const colA = alt ? gB : gA; const colB = alt ? gA : gB;
+        const gr = ctx.createLinearGradient(x1g, y1g, x2g, y2g);
+        gr.addColorStop(0, colA); gr.addColorStop(1, colB);
+        ctx.fillStyle = gr; ctx.fillRect(rx, ry, cw, ch);
+      }
+      if($("estGlow").checked){ drawGlowInCell(rx, ry, cw, ch, gB); }
+    }
+  }
+
+  // Líneas de grilla
+  ctx.strokeStyle = "rgba(220,220,220,.35)"; ctx.lineWidth = stroke;
+  ctx.strokeRect(x0+0.5, y0+0.5, w-1, h-1);
+  ctx.beginPath();
+  for(let i=1;i<cols;i++){ const x = x0 + i*cw + 0.5; ctx.moveTo(x, y0); ctx.lineTo(x, y0+h); }
+  for(let j=1;j<rows;j++){ const y = y0 + j*ch + 0.5; ctx.moveTo(x0, y); ctx.lineTo(x0+w, y); }
+  ctx.stroke();
+
+  // Numeración proporcional
+  const pad = (n, fmt)=> String(n).padStart(fmt.length, "0");
+  const numSize = Math.max(8, Number($("numSize").value));
+  if(numMode!=="none"){
+    ctx.fillStyle = "#e9eef3";
+    ctx.font = `${numSize}px ${$("fontFamily").value}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    let seq = 1;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        let label = "";
+        if(numMode==="rc") label = pad(r+1,numFmt)+","+pad(c+1,numFmt);
+        if(numMode==="cr") label = pad(c+1,numFmt)+","+pad(r+1,numFmt);
+        if(numMode==="seq") label = pad(seq++,numFmt);
+        const cx = x0 + (c+.5)*cw; const cy = y0 + (r+.5)*ch;
+        ctx.fillText(label, cx, cy);
+      }
+    }
+  }
+
+  // Extras: barras apiladas + círculo
+  const wantCircle = (extras==="circle"||extras==="barsCircle");
+  const wantBars = (extras==="bars"||extras==="barsCircle");
+
+  const barsTopY = y0 + ch*2.2;
+  if(wantBars){
+    const totalH = Math.max(40, H*0.12);
+    const sectionH = totalH/3;
+    const barW = Math.min(W*0.7, 1400);
+    const bx = (W - barW)/2;
+    const by0 = barsTopY;
+
+    // bloques de color
+    const colorsBar = ["#808080","#C0C0C0","#B5AD00","#59D1D8","#41B642","#B441B6","#B64141","#4141B6","#808080"];
+    let x = bx; let y = by0;
+    for(let i=0;i<colorsBar.length;i++){ ctx.fillStyle = colorsBar[i]; ctx.fillRect(x, y, barW/colorsBar.length, sectionH); x += barW/colorsBar.length; }
+    // escala de grises
+    const steps = 16; y = by0 + sectionH; x = bx;
+    for(let i=0;i<steps;i++){ const t = i/(steps-1); const v = Math.round(255*t); ctx.fillStyle = `rgb(${v},${v},${v})`; ctx.fillRect(x, y, barW/steps, sectionH); x += barW/steps; }
+    // barras pequeñas
+    const small = ["#00FFFF","#FFFF00","#000080","#808080","#000000","#808080","#FFFFFF","#808080","#000000","#808080","#FF0000"];
+    y = by0 + sectionH*2; x = bx;
+    for(let i=0;i<small.length;i++){ ctx.fillStyle = small[i]; ctx.fillRect(x, y, barW/small.length, sectionH); x += barW/small.length; }
+  }
+
+  if(wantCircle){
+    ctx.strokeStyle = "rgba(200,200,200,.35)"; ctx.lineWidth = stroke;
+    ctx.beginPath(); const r = Math.min(w,h)/2 - 0;
+    ctx.ellipse(W/2, H/2, r, r, 0, 0, Math.PI*2); ctx.stroke();
+  }
+
+  // Guías de centro
+  if($("centerGuides").checked){
+    const op = Math.max(0, Math.min(100, Number($("guideOp").value)))/100;
+    const gs = Math.max(1, Math.min(8, Number($("guideStroke").value)));
+    const color = $("guideColor").value;
+    drawCenterGuides(x0,y0,w,h,op,gs,color);
+  }
+
+  // Logo + DROP SHADOW
+  if(logoImg){
+    const scale = Math.max(1, Math.min(100, Number($("logoScale").value))) / 100;
+    const opacity = Math.max(0, Math.min(100, Number($("logoOpacity").value))) / 100;
+    const pos = $("logoPos").value;
+    const maxDim = Math.min(W,H) * scale;
+    const ratio = Math.max(logoImg.width, logoImg.height);
+    const lw = logoImg.width * (maxDim/ratio);
+    const lh = logoImg.height * (maxDim/ratio);
+    const padM = Math.max(8, Math.min(48, Math.round(Math.min(W,H)*0.015)));
+    let lx = x0 + w - lw - padM, ly = y0 + h - lh - padM;
+    if(pos==="bl") { lx = x0 + padM; ly = y0 + h - lh - padM; }
+    if(pos==="tr") { lx = x0 + w - lw - padM; ly = y0 + padM; }
+    if(pos==="tl") { lx = x0 + padM; ly = y0 + padM; }
+    if(pos==="center") { lx = x0 + (w - lw)/2; ly = y0 + (h - lh)/2; }
+
+    if($("logoDropOn").checked){
+      const opS = Math.max(0, Math.min(100, Number($("logoDropOpacity").value)))/100;
+      const angle = (Number($("logoDropAngle").value) || 0) * Math.PI/180;
+      const offx = Math.cos(angle) * DEFAULT_DROP_DIST;
+      const offy = Math.sin(angle) * DEFAULT_DROP_DIST;
+
+      ctx.save();
+      ctx.globalAlpha = opS;
+      ctx.shadowColor = "rgba(0,0,0,1)";
+      ctx.shadowBlur = DEFAULT_DROP_BLUR;
+      ctx.shadowOffsetX = offx;
+      ctx.shadowOffsetY = offy;
+      ctx.drawImage(logoImg, lx, ly, lw, lh);
+      ctx.restore();
+    }
+
+    ctx.globalAlpha = opacity;
+    ctx.drawImage(logoImg, lx, ly, lw, lh);
+    ctx.globalAlpha = 1;
+  }
+
+  // Título (texto fijo + fondo con offset, por encima de todo)
+  const barsTop = y0 + ch*2.2;
+  drawCenteredTitleAboveBars(W,H,barsTop);
+
+  ctx.restore();
+}
+
+/* ==== Interacciones de pintura ==== */
+let painting = false;
+function paintAt(evt){
+  const rect = canvas.getBoundingClientRect();
+  const cssW = rect.width, cssH = rect.height;
+  const scaleX = canvas.width / cssW;
+  const scaleY = canvas.height / cssH;
+  const rx = (evt.clientX - rect.left) * scaleX;
+  const ry = (evt.clientY - rect.top) * scaleY;
+
+  const {W,H,cols,rows} = computeResolution();
+  const SS = computeSupersample(Number($("modW").value), Number($("modH").value));
+  const scale = (window.devicePixelRatio || 1) * SS;
+  const x = rx / scale;
+  const y = ry / scale;
+
+  const x0 = 0, y0 = 0, x1 = W, y1 = H;
+  if(x < x0 || x > x1 || y < y0 || y > y1) return;
+  const cw = W / cols, ch = H / rows;
+  const c = Math.min(cols-1, Math.floor((x - x0) / cw));
+  const r = Math.min(rows-1, Math.floor((y - y0) / ch));
+
+  if(evt.ctrlKey || evt.metaKey){ // cuentagotas
+    const px = Math.floor(rx);
+    const py = Math.floor(ry);
+    const data = ctx.getImageData(px, py, 1, 1).data;
+    const col = "#"+[data[0],data[1],data[2]].map(v=>v.toString(16).padStart(2,"0")).join("");
+    selectedColor = col; updatePaletteSelection(selectedColor);
+  } else {
+    if(!colors[r]) colors[r] = [];
+    colors[r][c] = selectedColor; draw();
+  }
+}
+canvas.addEventListener("mousedown", (e)=>{ painting = true; paintAt(e); });
+canvas.addEventListener("mousemove", (e)=>{ if(painting) paintAt(e); });
+window.addEventListener("mouseup", ()=> painting=false);
+
+/* ==== Gradiente apply/clear ==== */
+$("applyGrad").addEventListener("click", ()=>{ gradApplied = true; draw(); });
+$("clearGrad").addEventListener("click", ()=>{ gradApplied = false; draw(); });
+
+/* ==== Utilidades ==== */
+$("clearColors").addEventListener("click", ()=>{
+  const {rows, cols} = computeResolution();
+  colors = Array.from({length:rows}, ()=> Array.from({length:cols}, ()=> null));
+  draw();
+});
+$("invertColors").addEventListener("click", ()=>{
+  for(let r=0;r<colors.length;r++){
+    for(let c=0;c<colors[r].length;c++){
+      const col = colors[r][c]; if(!col) continue;
+      const m = col.match(/^#?([0-9a-f]{6})$/i);
+      if(m){ const v = parseInt(m[1],16); const inv = 0xFFFFFF ^ v; colors[r][c] = "#" + inv.toString(16).padStart(6,"0"); }
+    }
+  }
+  draw();
+});
+$("shuffleColors").addEventListener("click", ()=>{
+  const flat = []; colors.forEach(row=> row.forEach(c=> flat.push(c)));
+  flat.sort(()=>Math.random()-0.5);
+  let i=0; for(let r=0;r<colors.length;r++){ for(let c=0;c<colors[r].length;c++){ colors[r][c] = flat[i++]; } }
+  draw();
+});
+
+/* ==== Guardar/Cargar layout (incluye logo y offset del fondo) ==== */
+$("saveLayout").addEventListener("click", ()=>{
+  const payload = {
+    modW: Number($("modW").value),
+    modH: Number($("modH").value),
+    cols: Number($("cols").value),
+    rows: Number($("rows").value),
+    stroke: Number($("stroke").value),
+    numMode: $("numMode").value,
+    numFmt: $("numFmt").value,
+    numSize: Number($("numSize").value),
+    fontFamily: $("fontFamily").value,
+    title: $("title").value,
+    titleSize: Number($("titleSize").value),
+    titleBg: $("titleBg").value,
+    titleBgOp: Number($("titleBgOp").value),
+    titleBgOffsetY: Number($("titleBgOffsetY").value),
+    extras: $("extras").value,
+    estGlow: $("estGlow").checked,
+    centerGuides: $("centerGuides").checked,
+    guideOp: Number($("guideOp").value),
+    guideStroke: Number($("guideStroke").value),
+    guideColor: $("guideColor").value,
+    gradApplied,
+    gradA: $("gradA").value,
+    gradB: $("gradB").value,
+    gradOri: $("gradOri").value,
+    gradAlt: $("gradAlt").value,
+    logoPos: $("logoPos").value,
+    logoOpacity: Number($("logoOpacity").value),
+    logoScale: Number($("logoScale").value),
+    logoDropOn: $("logoDropOn").checked,
+    logoDropOpacity: Number($("logoDropOpacity").value),
+    logoDropAngle: Number($("logoDropAngle").value),
+    logoDataURL,
+    colors
+  };
+  const blob = new Blob([JSON.stringify(payload)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "led_grid_layout.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+$("loadLayout").addEventListener("click", ()=> $("layoutFile").click());
+$("layoutFile").addEventListener("change", (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{
+    try{
+      const data = JSON.parse(fr.result);
+      for(const k of ["modW","modH","cols","rows","stroke","numMode","numFmt","numSize","fontFamily","title","titleSize","titleBg","titleBgOp","titleBgOffsetY","extras","gradA","gradB","gradOri","gradAlt","logoPos","logoOpacity","logoScale","guideOp","guideStroke","guideColor","logoDropOpacity","logoDropAngle"]){
+        if(data[k]!==undefined) $(k).value = data[k];
+      }
+      $("estGlow").checked = !!data.estGlow;
+      $("centerGuides").checked = !!data.centerGuides;
+      $("logoDropOn").checked = !!data.logoDropOn;
+      gradApplied = !!data.gradApplied;
+      colors = data.colors || [];
+      if(data.logoDataURL){
+        logoDataURL = data.logoDataURL;
+        logoImg = new Image();
+        logoImg.onload = ()=> draw();
+        logoImg.src = logoDataURL;
+      }
+      autoTitleSizing = false;
+      autoNumSizing = false;
+      computeResolution(); draw();
+    }catch(err){
+      const box = $("errBox"); box.textContent = "No se pudo cargar el layout."; box.style.display = "block";
+    }
+  };
+  fr.readAsText(file);
+});
+
+/* ==== Logo file ==== */
+$("logoFile").addEventListener("change", (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{
+    logoDataURL = fr.result;
+    logoImg = new Image();
+    logoImg.onload = ()=>{ draw(); };
+    logoImg.src = logoDataURL;
+    $("logoFile").value = "";
+  };
+  fr.readAsDataURL(file);
+});
+
+/* ==== Presets (todos 10×6) ==== */
+const PRESETS = {
+  p2: { modW:168, modH:168, cols:10, rows:6, stroke:2, numMode:"rc", numFmt:"1",
+        fontFamily:"Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+        title:"PANTALLA 10×6 (P2)", titleSize:64, titleBg:"on", titleBgOp:60, titleBgOffsetY:0,
+        extras:"barsCircle", estGlow:true, centerGuides:true, guideOp:35, guideStroke:2, guideColor:"#ff7f7f",
+        gradA:"#000000", gradB:"#cc0000", gradOri:"vertical", gradAlt:"checker",
+        logoPos:"br", logoOpacity:80, logoScale:20,
+        logoDropOn:true, logoDropOpacity:90, logoDropAngle:135 },
+  p3: { modW:128, modH:128, cols:10, rows:6, stroke:2, numMode:"rc", numFmt:"1",
+        fontFamily:"Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+        title:"PANTALLA 10×6 (P3)", titleSize:64, titleBg:"on", titleBgOp:60, titleBgOffsetY:0,
+        extras:"barsCircle", estGlow:true, centerGuides:true, guideOp:35, guideStroke:2, guideColor:"#ff7f7f",
+        gradA:"#000000", gradB:"#cc0000", gradOri:"vertical", gradAlt:"checker",
+        logoPos:"br", logoOpacity:80, logoScale:20,
+        logoDropOn:true, logoDropOpacity:90, logoDropAngle:135 },
+  p4: { modW:104, modH:104, cols:10, rows:6, stroke:2, numMode:"rc", numFmt:"1",
+        fontFamily:"Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+        title:"PANTALLA 10×6 (P4)", titleSize:64, titleBg:"on", titleBgOp:60, titleBgOffsetY:0,
+        extras:"barsCircle", estGlow:true, centerGuides:true, guideOp:35, guideStroke:2, guideColor:"#ff7f7f",
+        gradA:"#000000", gradB:"#cc0000", gradOri:"vertical", gradAlt:"checker",
+        logoPos:"br", logoOpacity:80, logoScale:20,
+        logoDropOn:true, logoDropOpacity:90, logoDropAngle:135 },
+  p6: { modW:80, modH:80, cols:10, rows:6, stroke:2, numMode:"rc", numFmt:"1",
+        fontFamily:"Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+        title:"PANTALLA 10×6 (P6)", titleSize:64, titleBg:"on", titleBgOp:60, titleBgOffsetY:0,
+        extras:"barsCircle", estGlow:true, centerGuides:true, guideOp:35, guideStroke:2, guideColor:"#ff7f7f",
+        gradA:"#000000", gradB:"#cc0000", gradOri:"vertical", gradAlt:"checker",
+        logoPos:"br", logoOpacity:80, logoScale:20,
+        logoDropOn:true, logoDropOpacity:90, logoDropAngle:135 },
+  p7: { modW:64, modH:64, cols:10, rows:6, stroke:2, numMode:"rc", numFmt:"1",
+        fontFamily:"Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+        title:"PANTALLA 10×6 (P7)", titleSize:64, titleBg:"on", titleBgOp:60, titleBgOffsetY:0,
+        extras:"barsCircle", estGlow:true, centerGuides:true, guideOp:35, guideStroke:2, guideColor:"#ff7f7f",
+        gradA:"#000000", gradB:"#cc0000", gradOri:"vertical", gradAlt:"checker",
+        logoPos:"br", logoOpacity:80, logoScale:20,
+        logoDropOn:true, logoDropOpacity:90, logoDropAngle:135 },
+};
+function applyPreset(key){
+  const p = PRESETS[key]; if(!p) return;
+  for(const k of Object.keys(p)){ if($(k) !== null && k!=="numSize") $(k).value = p[k]; }
+  $("estGlow").checked = !!p.estGlow;
+  $("centerGuides").checked = !!p.centerGuides;
+  $("logoDropOn").checked = !!p.logoDropOn;
+  gradApplied = true;
+  autoTitleSizing = true;
+  autoNumSizing = true;
+  applyAutoNumSizing(p.modW, p.modH);
+  draw();
+}
+$("applyPresetBtn").addEventListener("click", ()=>{
+  const key = $("presetSelect").value; if(!key) return;
+  applyPreset(key);
+});
+
+/* ==== Export ==== */
+function downloadPNG(){
+  const {W,H} = computeResolution();
+  const off = document.createElement('canvas');
+  off.width = W; off.height = H;
+  const octx = off.getContext('2d');
+  octx.imageSmoothingEnabled = true;
+  octx.drawImage(canvas, 0, 0, off.width, off.height);
+  const link = document.createElement('a');
+  link.download = 'led_grid.png';
+  link.href = off.toDataURL('image/png');
+  link.click();
+}
+function downloadSVG(){
+  const {W,H,cols,rows} = computeResolution();
+  const margin = INTERNAL_MARGIN; // 0
+  const stroke = Math.max(1, Number($("stroke").value));
+  const x0 = margin, y0 = margin, x1 = W - margin, y1 = H - margin;
+  const w = x1 - x0, h = y1 - y0;
+  const cw = w / cols, ch = h / rows;
+  let svg = [];
+  svg.push(`<?xml version="1.0" encoding="UTF-8"?>`);
+  svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`);
+  svg.push(`<rect width="100%" height="100%" fill="#000"/>`);
+  if(gradApplied){
+    const gA = $("gradA").value, gB = $("gradB").value;
+    const gOri = $("gradOri").value, gAlt = $("gradAlt").value;
+    svg.push(`<defs>`);
+    const x2 = (gOri==='horizontal'||gOri==='diag1')?1:0;
+    const y2 = (gOri==='vertical'||gOri==='diag1'||gOri==='diag2')?1:0;
+    svg.push(`<linearGradient id="gAB" x1="0" y1="0" x2="${x2}" y2="${y2}"><stop offset="0%" stop-color="${gA}"/><stop offset="100%" stop-color="${gB}"/></linearGradient>`);
+    svg.push(`<linearGradient id="gBA" x1="0" y1="0" x2="${x2}" y2="${y2}"><stop offset="0%" stop-color="${gB}"/><stop offset="100%" stop-color="${gA}"/></linearGradient>`);
+    svg.push(`</defs>`);
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const col = colors[r] && colors[r][c];
+        const x = x0 + c*cw, y = y0 + r*ch;
+        if(col){ svg.push(`<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${col}"/>`); continue; }
+        let alt = (gAlt==="checker" ? ((r+c)%2===1) : gAlt==="row" ? (r%2===1) : gAlt==="col" ? (c%2===1) : false);
+        const gid = alt ? "gBA" : "gAB";
+        svg.push(`<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="url(#${gid})"/>`);
+      }
+    }
+  } else {
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const col = colors[r] && colors[r][c];
+        if(!col) continue;
+        svg.push(`<rect x="${x0 + c*cw}" y="${y0 + r*ch}" width="${cw}" height="${ch}" fill="${col}"/>`);
+      }
+    }
+  }
+  svg.push(`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="none" stroke="rgba(220,220,220,.35)" stroke-width="${stroke}"/>`);
+  for(let i=1;i<cols;i++){ const x = x0 + i*cw; svg.push(`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+h}" stroke="rgba(220,220,220,.35)" stroke-width="${stroke}"/>`); }
+  for(let j=1;j<rows;j++){ const y = y0 + j*ch; svg.push(`<line x1="${x0}" y1="${y}" x2="${x0+w}" y2="${y}" stroke="rgba(220,220,220,.35)" stroke-width="${stroke}"/>`); }
+  if($("centerGuides").checked){
+    const op = Math.max(0, Math.min(100, Number($("guideOp").value)))/100;
+    const gs = Math.max(1, Math.min(8, Number($("guideStroke").value)));
+    const color = $("guideColor").value;
+    svg.push(`<g stroke="${color}" stroke-opacity="${op}" stroke-width="${gs}">`);
+    svg.push(`<line x1="${x0+w/2}" y1="${y0}" x2="${x0+w/2}" y2="${y0+h}"/>`);
+    svg.push(`<line x1="${x0}" y1="${y0+h/2}" x2="${x0+w}" y2="${y0+h/2}"/>`);
+    svg.push(`<line x1="${x0}" y1="${y0}" x2="${x0+w}" y2="${y0+h}"/>`);
+    svg.push(`<line x1="${x0+w}" y1="${y0}" x2="${x0}" y2="${y0+h}"/>`);
+    svg.push(`</g>`);
+  }
+  svg.push(`</svg>`);
+  const blob = new Blob([svg.join("\n")], {type:"image/svg+xml"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "led_grid.svg";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+$("pngBtn").addEventListener("click", downloadPNG);
+$("svgBtn").addEventListener("click", downloadSVG);
+
+/* ==== Inputs trigger ==== */
+["modW","modH","cols","rows","stroke","numMode","numFmt","numSize","fontFamily","title","titleSize","titleBgOffsetY","extras","gradA","gradB","gradOri","gradAlt","logoScale","logoOpacity","logoPos","estGlow","centerGuides","guideOp","guideStroke","guideColor","titleBg","titleBgOp","logoDropOn","logoDropOpacity","logoDropAngle"].forEach(id=>{
+  const el = $(id); if(!el) return;
+  el.addEventListener("input", (ev)=>{
+    if(id==="titleSize"){ autoTitleSizing = false; }
+    if(id==="numSize"){ autoNumSizing = false; }
+    if(id==="modW" || id==="modH"){ autoNumSizing = true; }
+    draw();
+  });
+});
+$("renderBtn").addEventListener("click", ()=> draw());
+window.addEventListener("resize", fitCanvasToStage);
+
+/* ==== Init (preset por defecto P2) ==== */
+function init(){
+  buildPalette();
+  $("presetSelect").value = "p2";
+  applyPreset("p2");
+  computeResolution();
+  draw();
+}
+init();
+
+</script>
+</body>
+</html>

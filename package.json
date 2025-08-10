@@ -1,0 +1,71 @@
+{
+  "name": "generador-grilla-cgschile",
+  "productName": "Generador Grilla CGSChile",
+  "version": "1.0.0",
+  "description": "Aplicación de escritorio offline para Generador_Grilla_CGSCHILE",
+  "main": "main.js",
+  "author": "CGSChile",
+  "license": "Proprietary",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder -wml",
+    "dist:win": "electron-builder -w",
+    "dist:mac": "electron-builder -m",
+    "dist:linux": "electron-builder -l"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.6.4"
+  },
+  "build": {
+    "appId": "cl.cgschile.generadorgrilla",
+    "files": [
+      "main.js",
+      "preload.js",
+      "app/**/*"
+    ],
+    "asar": true,
+    "extraResources": [],
+    "directories": {
+      "buildResources": "build"
+    },
+    "mac": {
+      "category": "public.app-category.graphics-design",
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "dmg": {
+      "artifactName": "Generador_Grilla_CGSCHILE_mac_${version}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "artifactName": "Generador_Grilla_CGSCHILE_win_${version}.exe"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Graphics",
+      "icon": "build/icon.png",
+      "artifactName": "Generador_Grilla_CGSCHILE_linux_${version}.${ext}"
+    }
+  }
+}
