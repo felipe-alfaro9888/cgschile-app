@@ -6,16 +6,25 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node (LTS)
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'           # más estable para Electron 30
+          cache: 'npm'
 
-      # Usa npm install (no npm ci) porque no hay package-lock.json
+      # A veces npm install falla por peer deps. Probamos normal y, si falla, repetimos con legacy.
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install || (echo "retry with legacy peer deps" && npm install --legacy-peer-deps)
+
+      # (Opcional) asegura binarios nativos de Electron si alguna lib los requiere
+      - name: Install app deps
+        run: npx electron-builder install-app-deps
 
       - name: Build Windows (.exe)
         run: npm run dist:win
