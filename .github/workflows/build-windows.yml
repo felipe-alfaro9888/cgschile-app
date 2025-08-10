@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-   env:
+env:
   # Fuerza logs útiles y evita publicar releases
   DEBUG: electron-builder
   CI: true
