@@ -1,0 +1,30 @@
+name: Build Windows Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build Windows
+        run: npm run dist:win
+
+      - name: Upload artifact (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Generador_Grilla_CGSCHILE_Windows_Installer
+          path: dist/*.exe
