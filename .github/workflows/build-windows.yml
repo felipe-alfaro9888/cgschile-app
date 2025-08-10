@@ -6,12 +6,15 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    env:
-      # Fuerza logs útiles y evita publicar releases
-      DEBUG: electron-builder
-      CI: true
-      GH_TOKEN: ""                 # evita auto-publish
-      ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
+   env:
+  # Fuerza logs útiles y evita publicar releases
+  DEBUG: electron-builder
+  CI: true
+  GH_TOKEN: ""                 # evita auto-publish
+  ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"   # << desactiva intento de firma
+
+      
 
     steps:
       - name: Checkout
